@@ -11,9 +11,18 @@ Una pequeña aplicación de escritorio que busca una imagen en una pantalla sele
 
 ## 📦 Requisitos
 
-- Python 3.8 o superior
+- Windows 10 u 11
+- Python 3.8+ (solo si compilas desde código)
 
-## 🛠 Instalación
+## ⬇️ Descargar el ejecutable (.exe)
+
+Haz clic aquí para descargar la versión lista para usar:
+
+👉 [Descargar ImageClicker.exe](https://github.com/tu_usuario/tu_repositorio/releases/latest)
+
+> No necesitas instalar Python ni nada adicional.
+
+## 🛠 Instalación manual (desde código fuente)
 
 1. Clona este repositorio o copia los archivos:
 
@@ -61,6 +70,18 @@ Una pequeña aplicación de escritorio que busca una imagen en una pantalla sele
 
 ![App UI](demo.png)
 
+## ☕ ¿Te gusta mi trabajo?
+
+Puedes apoyarme con una donación:
+
+[![Donar con PayPal](https://img.shields.io/badge/Donar-PayPal-blue?logo=paypal)](https://paypal.me/rapere)
+
+También puedes escanear este código QR desde tu móvil:
+
+<p align="center">
+  <img src="qrcode.png" width="200" alt="QR PayPal">
+</p>
+
 ## 📄 Licencia
 
 MIT © Rami
@@ -69,4 +90,4 @@ MIT © Rami
 
 # 🧠 Etiquetas
 
-`sistema-imagenes-autoclick` `desktop-app` `pyautogui` `opencv-python` `tkinter`
+`sistema-imagenes-autoclick` `desktop-app` `pyautogui` `opencv-python` `tkinter` `automation` `image-detection`
