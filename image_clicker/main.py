@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import pyautogui
@@ -51,8 +50,7 @@ class ImageClickerApp:
             self.monitor_menu['menu'].add_command(label=name, command=tk._setit(self.monitor_var, name))
 
     def select_image(self):
-        path = filedialog.askopenfilename(
-            filetypes=[("Imágenes", "*.png *.jpg *.jpeg *.bmp")])
+        path = filedialog.askopenfilename(filetypes=[("Imágenes", "*.png *.jpg *.jpeg *.bmp")])
         if path:
             try:
                 Image.open(path).verify()
@@ -86,28 +84,32 @@ class ImageClickerApp:
 
     def monitor_loop(self):
         print("[INFO] Iniciando monitorización en pantalla seleccionada...")
-        template = cv2.imread(self.image_path, cv2.IMREAD_UNCHANGED)
+
+        template = cv2.imread(self.image_path, cv2.IMREAD_GRAYSCALE)
         if template is None:
             messagebox.showerror("Error", "No se pudo cargar la imagen.")
             return
 
+        template_h, template_w = template.shape[:2]
         region = (self.monitor.x, self.monitor.y, self.monitor.width, self.monitor.height)
 
         while self.running:
             screenshot = pyautogui.screenshot(region=region)
-            screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+            screenshot_np = np.array(screenshot)
+            screenshot_gray = cv2.cvtColor(screenshot_np, cv2.COLOR_RGB2GRAY)
 
-            if screenshot.shape[2] != template.shape[2]:
-                template = cv2.cvtColor(template, cv2.COLOR_BGR2RGB)
-
-            res = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+            res = cv2.matchTemplate(screenshot_gray, template, cv2.TM_CCOEFF_NORMED)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
             if max_val >= THRESHOLD:
-                print(f"[✓] Imagen detectada en pantalla con confianza: {max_val:.2f}")
-                x, y = max_loc
-                pyautogui.click(x + region[0] + template.shape[1]//2, y + region[1] + template.shape[0]//2)
-                time.sleep(1)
+                center_x = max_loc[0] + template_w // 2
+                center_y = max_loc[1] + template_h // 2
+                click_x = region[0] + center_x
+                click_y = region[1] + center_y
+
+                print(f"[✓] Imagen detectada (confianza: {max_val:.2f}) → clic en ({click_x}, {click_y})")
+                pyautogui.click(click_x, click_y)
+                time.sleep(1)  # tiempo de espera tras hacer clic
             else:
                 print(f"[✗] No detectada (confianza: {max_val:.2f})")
 
