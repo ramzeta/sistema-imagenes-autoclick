@@ -18,7 +18,7 @@ Una pequeña aplicación de escritorio que busca una imagen en una pantalla sele
 
 Haz clic aquí para descargar la versión lista para usar:
 
-👉 [Descargar ImageClicker.exe](https://github.com/ramzeta/sistema-imagenes-autoclick/dist/main.exe)
+👉 [Descargar ImageClicker.exe](https://github.com/ramzeta/image-clicker/releases/latest/download/ImageClicker.exe )
 
 > No necesitas instalar Python ni nada adicional.
 
