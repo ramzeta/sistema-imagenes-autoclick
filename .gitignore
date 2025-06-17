@@ -88,3 +88,6 @@ localpycs/
 
 # Archivos de ejecución compilados
 *.exe
+
+# Permitir ejecutables en releases
+!releases/*.exe
