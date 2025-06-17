@@ -10,13 +10,15 @@ from PIL import Image
 from screeninfo import get_monitors
 
 THRESHOLD = 0.9
-INTERVAL = 2  # segundos entre escaneos
+INTERVAL = 1.5  # segundos entre escaneos (optimizado)
 CURSOR_OFFSET = 50  # píxeles para mover el cursor después del click
+MIN_TEMPLATE_SIZE = 10  # tamaño mínimo de template para optimización
+MAX_LOG_LINES = 100  # máximo de líneas en log para evitar sobrecarga
 
 class ImageClickerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Detector Múltiple de Imágenes en Pantalla")
+        self.root.title("Detector Múltiple de Imágenes en Pantalla - Optimizado")
         self.root.geometry("600x500")
 
         self.image_paths = []  # Lista de rutas de imágenes
@@ -24,6 +26,12 @@ class ImageClickerApp:
         self.image_names = []  # Nombres de las imágenes
         self.monitor = None
         self.running = False
+        
+        # Cache y optimizaciones
+        self.template_cache = {}  # Cache de templates redimensionados
+        self.last_screenshot_time = {}  # Control de frecuencia por monitor
+        self.detection_cooldown = {}  # Cooldown para evitar clicks repetidos
+        self.log_queue = []  # Queue para logs no críticos
 
         self.setup_ui()
 
@@ -148,18 +156,29 @@ class ImageClickerApp:
                 try:
                     # Verificar que la imagen se puede abrir
                     Image.open(path).verify()
-                    
-                    # Cargar template de OpenCV
+                      # Cargar template de OpenCV
                     template = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
                     if template is not None:
+                        # Optimización: verificar tamaño mínimo del template
+                        h, w = template.shape[:2]
+                        if h < MIN_TEMPLATE_SIZE or w < MIN_TEMPLATE_SIZE:
+                            self.log(f"⚠️ Template muy pequeño: {filename} ({w}x{h})", "high")
+                            continue
+                            
                         self.image_paths.append(path)
                         self.image_templates.append(template)
                         filename = os.path.basename(path)
                         self.image_names.append(filename)
                         
+                        # Pre-calcular cache de templates escalados
+                        self.template_cache[filename] = {
+                            'original': template,
+                            'size': (w, h)
+                        }
+                        
                         # Agregar a la lista visual
                         self.images_listbox.insert(tk.END, f"{len(self.image_paths)}. {filename}")
-                        self.log(f"✓ Imagen cargada: {filename}")
+                        self.log(f"✓ Imagen cargada: {filename} ({w}x{h})")
                     else:
                         self.log(f"✗ Error al cargar: {os.path.basename(path)}")
                 except Exception as e:
@@ -173,16 +192,41 @@ class ImageClickerApp:
         self.image_paths.clear()
         self.image_templates.clear()
         self.image_names.clear()
+        self.template_cache.clear()  # Limpiar cache
+        self.detection_cooldown.clear()  # Limpiar cooldowns
         self.images_listbox.delete(0, tk.END)
         self.start_button.config(state=tk.DISABLED)
-        self.log("🗑️ Lista de imágenes limpiada")
+        self.log("🗑️ Lista de imágenes limpiada", "high")
 
-    def log(self, message):
-        """Agregar mensaje al área de logs con timestamp"""
+    def log(self, message, priority="normal"):
+        """Agregar mensaje al área de logs con timestamp y control de sobrecarga"""
         timestamp = time.strftime("%H:%M:%S")
-        self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
-        self.log_text.see(tk.END)
-        self.root.update_idletasks()
+        
+        if priority == "high":
+            # Logs críticos se muestran inmediatamente
+            self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+            self.log_text.see(tk.END)
+            self.root.update_idletasks()
+        else:
+            # Logs normales se almacenan en queue para procesamiento por lotes
+            self.log_queue.append(f"[{timestamp}] {message}\n")
+            
+        # Procesar queue si hay muchos logs pendientes
+        if len(self.log_queue) >= 5:
+            self.flush_log_queue()
+            
+        # Limpiar logs antiguos para evitar sobrecarga de memoria
+        if self.log_text.index(tk.END).split('.')[0] > str(MAX_LOG_LINES):
+            self.log_text.delete("1.0", f"{MAX_LOG_LINES//2}.0")
+
+    def flush_log_queue(self):
+        """Procesar logs pendientes en lote"""
+        if self.log_queue:
+            for log_msg in self.log_queue:
+                self.log_text.insert(tk.END, log_msg)
+            self.log_queue.clear()
+            self.log_text.see(tk.END)
+            self.root.update_idletasks()
 
     def start_monitoring(self):
         if not self.image_paths:
@@ -207,7 +251,7 @@ class ImageClickerApp:
         self.running = True
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
-        self.log(f"🎯 Iniciando detección de {len(self.image_paths)} imágenes en {mode_text}")
+        self.log(f"🎯 Iniciando detección de {len(self.image_paths)} imágenes en {mode_text}", "high")
         
         # Crear hilos para cada monitor
         self.monitor_threads = []
@@ -220,14 +264,21 @@ class ImageClickerApp:
         self.running = False
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
-        self.log("⏹️ Detención solicitada - esperando que terminen todos los hilos...")
+        self.log("⏹️ Detención solicitada - esperando que terminen todos los hilos...", "high")
+        
+        # Procesar logs pendientes antes de cerrar
+        self.flush_log_queue()
         
         # Esperar a que terminen todos los hilos (con timeout)
         if hasattr(self, 'monitor_threads'):
             for thread in self.monitor_threads:
                 thread.join(timeout=3.0)
         
-        self.log("✅ Detección completamente detenida")
+        # Limpiar caches para liberar memoria
+        self.detection_cooldown.clear()
+        self.last_screenshot_time.clear()
+        
+        self.log("✅ Detección completamente detenida", "high")
 
     def move_cursor_away(self, click_x, click_y, monitor_info=""):
         """Mover el cursor lejos del punto de click para no interferir"""
@@ -255,55 +306,110 @@ class ImageClickerApp:
             self.log(f"⚠️ Error moviendo cursor: {str(e)}")
 
     def monitor_loop(self, monitor, monitor_number):
-        """Loop principal de detección para un monitor específico"""
+        """Loop principal de detección para un monitor específico - OPTIMIZADO"""
         region = (monitor.x, monitor.y, monitor.width, monitor.height)
         monitor_info = f"[Monitor {monitor_number}]"
-        self.log(f"📱 {monitor_info} Iniciando en región: {region}")
+        monitor_key = f"monitor_{monitor_number}"
+        
+        self.log(f"📱 {monitor_info} Iniciando en región: {region}", "high")
+        self.last_screenshot_time[monitor_key] = 0
+        self.detection_cooldown[monitor_key] = {}
 
         while self.running:
             try:
-                # Capturar pantalla del monitor específico
+                current_time = time.time()
+                
+                # Control de frecuencia por monitor
+                if current_time - self.last_screenshot_time[monitor_key] < INTERVAL:
+                    time.sleep(0.1)  # Micro-sleep para no sobrecargar CPU
+                    continue
+                    
+                self.last_screenshot_time[monitor_key] = current_time
+
+                # Capturar pantalla del monitor específico (optimizado)
                 screenshot = pyautogui.screenshot(region=region)
                 screenshot_np = np.array(screenshot)
                 screenshot_gray = cv2.cvtColor(screenshot_np, cv2.COLOR_RGB2GRAY)
 
-                # Buscar cada imagen en la captura
+                # Optimización: reducir resolución si es muy grande
+                original_shape = screenshot_gray.shape
+                if original_shape[0] > 1080 or original_shape[1] > 1920:
+                    scale_factor = min(1080/original_shape[0], 1920/original_shape[1])
+                    new_width = int(original_shape[1] * scale_factor)
+                    new_height = int(original_shape[0] * scale_factor)
+                    screenshot_gray = cv2.resize(screenshot_gray, (new_width, new_height))
+                else:
+                    scale_factor = 1.0
+
+                # Buscar cada imagen en la captura (con optimizaciones)
+                detection_found = False
                 for i, (template, image_name) in enumerate(zip(self.image_templates, self.image_names)):
                     if not self.running:  # Verificar si se detuvo durante el bucle
                         break
-                        
-                    template_h, template_w = template.shape[:2]
                     
-                    # Realizar template matching
-                    res = cv2.matchTemplate(screenshot_gray, template, cv2.TM_CCOEFF_NORMED)
+                    # Control de cooldown para evitar clicks repetidos
+                    cooldown_key = f"{image_name}_{monitor_key}"
+                    if cooldown_key in self.detection_cooldown[monitor_key]:
+                        if current_time - self.detection_cooldown[monitor_key][cooldown_key] < 2.0:
+                            continue  # Saltar esta imagen si está en cooldown
+                    
+                    # Escalar template si la pantalla fue redimensionada
+                    if scale_factor != 1.0:
+                        template_scaled = cv2.resize(template, 
+                                                   (int(template.shape[1] * scale_factor), 
+                                                    int(template.shape[0] * scale_factor)))
+                    else:
+                        template_scaled = template
+                        
+                    template_h, template_w = template_scaled.shape[:2]
+                    
+                    # Verificar que el template no sea más grande que la imagen
+                    if template_h > screenshot_gray.shape[0] or template_w > screenshot_gray.shape[1]:
+                        continue
+                    
+                    # Realizar template matching (optimizado)
+                    res = cv2.matchTemplate(screenshot_gray, template_scaled, cv2.TM_CCOEFF_NORMED)
                     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
                     if max_val >= THRESHOLD:
-                        # Calcular posición del click (coordenadas globales)
-                        center_x = max_loc[0] + template_w // 2
-                        center_y = max_loc[1] + template_h // 2
+                        # Calcular posición del click (coordenadas globales, ajustadas por escala)
+                        center_x = int((max_loc[0] + template_w // 2) / scale_factor)
+                        center_y = int((max_loc[1] + template_h // 2) / scale_factor)
                         click_x = region[0] + center_x
                         click_y = region[1] + center_y
 
                         # Hacer click
                         pyautogui.click(click_x, click_y)
                         
+                        # Registrar cooldown
+                        if monitor_key not in self.detection_cooldown:
+                            self.detection_cooldown[monitor_key] = {}
+                        self.detection_cooldown[monitor_key][cooldown_key] = current_time
+                        
                         # Mover cursor para no interferir
                         self.move_cursor_away(click_x, click_y, monitor_info)
                         
-                        # Log del evento
-                        self.log(f"🎯 {monitor_info} DETECTADA '{image_name}' (confianza: {max_val:.2f}) → Click en ({click_x}, {click_y})")
+                        # Log del evento (prioridad alta para eventos importantes)
+                        self.log(f"🎯 {monitor_info} DETECTADA '{image_name}' (confianza: {max_val:.2f}) → Click en ({click_x}, {click_y})", "high")
                         
-                        # Pausa después del click
-                        time.sleep(1)
+                        detection_found = True
+                        time.sleep(0.5)  # Pausa más corta después del click
                         break  # Salir del bucle de imágenes para evitar clicks múltiples
 
+                # Si no se encontró nada, hacer una pausa más larga
+                if not detection_found:
+                    # Procesar logs pendientes durante tiempo libre
+                    self.flush_log_queue()
+
             except Exception as e:
-                self.log(f"❌ {monitor_info} Error en detección: {str(e)}")
+                self.log(f"❌ {monitor_info} Error en detección: {str(e)}", "high")
+                time.sleep(1)  # Pausa en caso de error
 
-            time.sleep(INTERVAL)
+            # Pausa adaptativa basada en si se encontró algo
+            if not detection_found:
+                time.sleep(INTERVAL * 0.5)  # Pausa más corta si no hay detecciones
 
-        self.log(f"⏹️ {monitor_info} Monitorización detenida")
+        self.log(f"⏹️ {monitor_info} Monitorización detenida", "high")
 
 if __name__ == "__main__":
     # Configurar pyautogui para mayor seguridad
