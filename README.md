@@ -35,11 +35,23 @@ Una aplicación de escritorio avanzada que busca **múltiples imágenes** en **t
 
 Haz clic aquí para descargar la versión lista para usar:
 
-👉 [Descargar ImageClicker.exe]([https://github.com/ramzeta/image-clicker/releases/latest/download/ImageClicker.exe ](https://github.com/ramzeta/sistema-imagenes-autoclick/blob/main/dist/ImageClicker.exe))
+👉 [Descargar ImageClicker.exe](https://github.com/ramzeta/sistema-imagenes-autoclick/blob/main/releases/ImageClicker.exe)
 
-> No necesitas instalar Python ni nada adicional.
+> **Instrucciones de descarga:**
+> 1. Haz clic en el enlace de arriba
+> 2. En la página de GitHub, haz clic en "Download" (o "Descargar")
+> 3. Ejecuta el archivo descargado
+> 
+> **Nota:** No necesitas instalar Python ni nada adicional. El ejecutable incluye todo lo necesario.
 
-## 🛠 Instalación manual (desde código fuente)
+## � Información del Ejecutable
+
+- **Tamaño:** ~120 MB (incluye todas las librerías necesarias)
+- **Compatibilidad:** Windows 10/11 (64-bit)
+- **Sin instalación:** Archivo portable, simplemente ejecuta
+- **Antivirus:** Puede ser detectado como falso positivo por algunos antivirus (es normal en ejecutables de Python compilados)
+
+## �🛠 Instalación manual (desde código fuente)
 
 1. Clona este repositorio o copia los archivos:
 
