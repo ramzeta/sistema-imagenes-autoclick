@@ -32,7 +32,6 @@ MANIFEST
 
 # PyInstaller
 *.manifest
-*.spec
 build/
 dist/
 
@@ -82,3 +81,10 @@ debug_*
 config.json
 settings.ini
 .env.local
+
+# Archivos específicos del proyecto
+*.spec
+localpycs/
+
+# Archivos de ejecución compilados
+*.exe
