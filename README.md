@@ -1,13 +1,30 @@
 
-# 🖱️ Image Clicker App
+# 🖱️ Image Clicker App - Versión Multi-Pantalla
 
-Una pequeña aplicación de escritorio que busca una imagen en una pantalla seleccionada y hace clic automáticamente cuando la detecta.
+Una aplicación de escritorio avanzada que busca **múltiples imágenes** en **todas las pantallas simultáneamente** y hace clic automáticamente cuando las detecta.
+
+## 🆕 Nuevas Características v3.0
+
+- 🖥️ **Análisis Multi-Pantalla**: Monitorea TODAS las pantallas al mismo tiempo
+- 🎯 **Detección Múltiple**: Carga varias imágenes para buscar simultáneamente  
+- 🔍 **Identificación Precisa**: Muestra qué imagen fue detectada y en qué monitor
+- 🖱️ **Movimiento Inteligente**: El cursor se mueve automáticamente después del click
+- 🧵 **Multi-Threading**: Hilos independientes para cada monitor
+- 📊 **Logs Detallados**: Seguimiento en tiempo real con identificación de monitor
+- 🎨 **Interfaz Avanzada**: Mejor organización y control de configuración
 
 ## 🚀 Características
 
-- Interfaz gráfica con `tkinter`.
-- Selección de pantalla para escanear.
-- Clic automático sobre coincidencias de imagen usando `pyautogui` y `OpenCV`.
+- Interfaz gráfica moderna con `tkinter`
+- **Análisis simultáneo** de todas las pantallas conectadas
+- **Detección múltiple** de imágenes simultáneas
+- **Identificación automática** de qué imagen fue detectada y en qué monitor
+- **Multi-threading** con hilos independientes por monitor
+- **Movimiento inteligente del cursor** para evitar interferencias
+- **Logs detallados** con timestamps e identificación de monitor
+- Selección flexible: todas las pantallas o monitor específico
+- Clic automático preciso usando `pyautogui` y `OpenCV`
+- Compilación a ejecutable independiente
 
 ## 📦 Requisitos
 
@@ -61,10 +78,12 @@ Haz clic aquí para descargar la versión lista para usar:
 
 ## 🧪 Test Rápido
 
-1. Ejecuta la app.
-2. Selecciona una imagen.
-3. Elige la pantalla donde buscarla.
-4. Pulsa "Iniciar" y observa los clics automáticos cuando se detecte la imagen.
+1. Ejecuta la app con `test.bat` o `python image_clicker/main.py`
+2. Haz click en "Agregar Imágenes" y selecciona una o varias imágenes
+3. Deja seleccionado "Todas las pantallas" (recomendado) o elige monitor específico
+4. Pulsa "Iniciar Detección" y observa los logs por monitor
+5. El sistema creará hilos para cada pantalla y hará clicks automáticos
+6. Observa cómo se identifica en qué monitor ocurrió cada detección
 
 ## 🖼️ Vista previa
 
